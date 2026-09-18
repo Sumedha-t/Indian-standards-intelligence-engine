@@ -1,0 +1,2 @@
+source_is_number,target_is_number,relationship_type,source_reference,source_url,evidence_notes
+"IS/IEC 62368 (Part 1):2023","IS 13252 (Part 1):2010","RELATED_STANDARD","BIS Electronics & IT testing reference","https://www.bis.gov.in/laboratorys/utrf/?lang=en","BIS Electronics & IT testing material references IS 13252 (Part 1):2010. Relationship is recorded as related only; supersession is not asserted without explicit lifecycle evidence."

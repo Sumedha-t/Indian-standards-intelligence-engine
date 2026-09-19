@@ -1,4 +1,4 @@
 source_standard,target_standard,relationship_type,source_url
 IS/IEC 62368 (Part 1):2023,IS 13252 (Part 1):2010,RELATED_STANDARD,https://www.bis.gov.in/laboratorys/utrf/?lang=en
-IS/IEC 62623:2012,IS/IEC 62623:2022,SUPERSEDES,https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkFqb0ZVNHB6TitIdmpDT3VsY2tqYVE9PSIsInZhbHVlIjoid2RtOWxrL2l2SEZyaEVyUlc5VmQvdz09IiwibWFjIjoiOGNjMjY4YTNmOGRmMzM2MzRhMjRiY2NiYTQ0OTExMWMxMDQ4OGZiY2JjMDc5NzQ3MmUwMzRkYzJjMjAxZGI2OCIsInRhZyI6IiJ9&standardNumber=IS%2FIEC%2062623:2012
-IS 11289:1985,IS 11289:2023,SUPERSEDES,https://standards.bis.gov.in/website/standard-details?standardNumber=IS%2011289%3A1985
+IS/IEC 62623:2022,IS/IEC 62623:2012,SUPERSEDES,https://standards.bis.gov.in/website/standard-details?encryptedId=eyJpdiI6IkFqb0ZVNHB6TitIdmpDT3VsY2tqYVE9PSIsInZhbHVlIjoid2RtOWxrL2l2SEZyaEVyUlc5VmQvdz09IiwibWFjIjoiOGNjMjY4YTNmOGRmMzM2MzRhMjRiY2NiYTQ0OTExMWMxMDQ4OGZiY2JjMDc5NzQ3MmUwMzRkYzJjMjAxZGI2OCIsInRhZyI6IiJ9&standardNumber=IS%2FIEC%2062623:2012
+IS 11289:2023,IS 11289:1985,SUPERSEDES,https://standards.bis.gov.in/website/standard-details?standardNumber=IS%2011289%3A1985

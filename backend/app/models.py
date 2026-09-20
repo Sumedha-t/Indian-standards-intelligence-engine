@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
+from pgvector.sqlalchemy import Vector
+
 from .database import Base
 
 
@@ -15,6 +17,7 @@ class Product(Base):
     description = Column(Text)
     source = Column(Text)
 
+
 class Standard(Base):
     __tablename__ = "standards"
 
@@ -25,10 +28,16 @@ class Standard(Base):
     department = Column(Text)
     technical_committee = Column(Text)
     classification = Column(Text)
+    status = Column(Text)
     revision = Column(Text)
     review_or_reaffirmation = Column(Text)
+    amendments = Column(Text)
     lifecycle_status = Column(Text, nullable=False, default="UNKNOWN")
     source_url = Column(Text)
+    source_type = Column(Text)
+    evidence_notes = Column(Text)
+    embedding = Column(Vector(384), nullable=True)
+
 
 class StandardRelationship(Base):
     __tablename__ = "standard_relationships"
@@ -59,6 +68,7 @@ class StandardRelationship(Base):
         "Standard",
         foreign_keys=[target_standard_id],
     )
+
 
 class Amendment(Base):
     __tablename__ = "amendments"
@@ -99,6 +109,7 @@ class Notification(Base):
     notification_type = Column(Text)
     implementation_information = Column(Text)
     source_url = Column(Text)
+
 
 class StandardNotification(Base):
     __tablename__ = "standard_notifications"

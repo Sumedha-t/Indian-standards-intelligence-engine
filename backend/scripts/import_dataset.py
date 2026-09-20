@@ -207,19 +207,30 @@ def import_certifications(db):
                     db.add(authority)
                     db.flush()
 
-            certification = Certification(
-                scheme_name=clean(row["scheme_name"]),
-                product_category=clean(row["product_category"]),
-                standard_id=standard.id,
-                applicability=clean(row["mandatory_status"]),
-                implementation_information=clean(
-                    row["evidence_notes"]
-                ),
-                source_url=clean(row["source_url"]),
+            existing_certification = db.scalar(
+                select(Certification).where(
+                    Certification.scheme_name
+                    == clean(row["scheme_name"]),
+                    Certification.product_category
+                    == clean(row["product_category"]),
+                    Certification.standard_id
+                    == standard.id,
+                )
             )
 
-            db.add(certification)
-            db.flush()
+            if existing_certification is None:
+                certification = Certification(
+                    scheme_name=clean(row["scheme_name"]),
+                    product_category=clean(row["product_category"]),
+                    standard_id=standard.id,
+                    applicability=clean(row["mandatory_status"]),
+                    implementation_information=clean(
+                        row["evidence_notes"]
+                    ),
+                    source_url=clean(row["source_url"]),
+                )
+                db.add(certification)
+                db.flush()
 
             notification_number = clean(
                 row["notification_number"]

@@ -5,10 +5,10 @@ def classify_confidence(score: float) -> str:
     This is an engineering heuristic, not a probability.
     """
 
-    if score >= 1.00:
+    if score >= 0.80:
         return "HIGH"
 
-    if score >= 0.80:
+    if score >= 0.65:
         return "MEDIUM"
 
     return "LOW"

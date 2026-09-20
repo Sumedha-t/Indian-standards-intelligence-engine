@@ -69,7 +69,9 @@ def import_standards(db):
             standard.technical_committee = clean(
                 row["technical_committee"]
             )
-            standard.classification = clean(row["classification"])
+            standard.classification = clean(
+                row["classification"]
+            )
             standard.status = clean(row["status"])
             standard.revision = clean(row["revision"])
             standard.review_or_reaffirmation = clean(
@@ -81,7 +83,9 @@ def import_standards(db):
             )
             standard.source_url = clean(row["source_url"])
             standard.source_type = clean(row["source_type"])
-            standard.evidence_notes = clean(row["evidence_notes"])
+            standard.evidence_notes = clean(
+                row["evidence_notes"]
+            )
 
             count += 1
 
@@ -100,9 +104,17 @@ def import_relationships(db):
         count = 0
 
         for row in rows:
-            source_is_number = clean(row["source_standard"])
-            target_is_number = clean(row["target_standard"])
-            relationship_type = clean(row["relationship_type"])
+            source_is_number = clean(
+                row["source_is_number"]
+            )
+
+            target_is_number = clean(
+                row["target_is_number"]
+            )
+
+            relationship_type = clean(
+                row["relationship_type"]
+            )
 
             if relationship_type not in ALLOWED_RELATIONSHIPS:
                 raise ValueError(
@@ -122,7 +134,10 @@ def import_relationships(db):
                 )
             )
 
-            if source_standard is None or target_standard is None:
+            if (
+                source_standard is None
+                or target_standard is None
+            ):
                 missing = []
 
                 if source_standard is None:
@@ -136,6 +151,7 @@ def import_relationships(db):
                     "STANDARD NOT IN DATASET:",
                     " -> ".join(missing),
                 )
+
                 continue
 
             existing = db.scalar(
@@ -156,6 +172,7 @@ def import_relationships(db):
                     relationship_type=relationship_type,
                     source=clean(row["source_url"]),
                 )
+
                 db.add(relationship)
 
             count += 1
@@ -185,7 +202,8 @@ def import_certifications(db):
 
             if standard is None:
                 raise ValueError(
-                    f"Certification standard not found: {is_number}"
+                    f"Certification standard not found: "
+                    f"{is_number}"
                 )
 
             authority_name = clean(row["authority"])
@@ -202,8 +220,11 @@ def import_certifications(db):
                     authority = Authority(
                         name=authority_name,
                         type="REGULATORY_AUTHORITY",
-                        source_url=clean(row["source_url"]),
+                        source_url=clean(
+                            row["source_url"]
+                        ),
                     )
+
                     db.add(authority)
                     db.flush()
 
@@ -220,15 +241,24 @@ def import_certifications(db):
 
             if existing_certification is None:
                 certification = Certification(
-                    scheme_name=clean(row["scheme_name"]),
-                    product_category=clean(row["product_category"]),
+                    scheme_name=clean(
+                        row["scheme_name"]
+                    ),
+                    product_category=clean(
+                        row["product_category"]
+                    ),
                     standard_id=standard.id,
-                    applicability=clean(row["mandatory_status"]),
+                    applicability=clean(
+                        row["mandatory_status"]
+                    ),
                     implementation_information=clean(
                         row["evidence_notes"]
                     ),
-                    source_url=clean(row["source_url"]),
+                    source_url=clean(
+                        row["source_url"]
+                    ),
                 )
+
                 db.add(certification)
                 db.flush()
 
@@ -246,9 +276,15 @@ def import_certifications(db):
 
                 if notification is None:
                     notification = Notification(
-                        notification_number=notification_number,
-                        title=clean(row["scheme_name"]),
-                        date=clean(row["notification_date"]),
+                        notification_number=(
+                            notification_number
+                        ),
+                        title=clean(
+                            row["scheme_name"]
+                        ),
+                        date=clean(
+                            row["notification_date"]
+                        ),
                         authority_id=(
                             authority.id
                             if authority
@@ -260,8 +296,11 @@ def import_certifications(db):
                         implementation_information=clean(
                             row["effective_date"]
                         ),
-                        source_url=clean(row["source_url"]),
+                        source_url=clean(
+                            row["source_url"]
+                        ),
                     )
+
                     db.add(notification)
                     db.flush()
 
@@ -279,7 +318,9 @@ def import_certifications(db):
                         StandardNotification(
                             standard_id=standard.id,
                             notification_id=notification.id,
-                            relationship="CERTIFICATION_SCHEME",
+                            relationship=(
+                                "CERTIFICATION_SCHEME"
+                            ),
                         )
                     )
 
@@ -299,9 +340,20 @@ def main():
 
         db.commit()
 
-        print(f"Standards processed: {standards_count}")
-        print(f"Relationships processed: {relationships_count}")
-        print(f"Certifications processed: {certifications_count}")
+        print(
+            f"Standards processed: {standards_count}"
+        )
+
+        print(
+            f"Relationships processed: "
+            f"{relationships_count}"
+        )
+
+        print(
+            f"Certifications processed: "
+            f"{certifications_count}"
+        )
+
         print("DATASET IMPORT SUCCESSFUL")
 
 

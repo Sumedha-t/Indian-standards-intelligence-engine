@@ -4,6 +4,7 @@ from backend.app.schemas import AnalyzeRequest, AnalyzeResponse
 from backend.app.services.analyzer import analyze_text
 from backend.app.services.pdf_service import extract_text_from_pdf
 
+
 app = FastAPI(
     title="Indian Standards Intelligence Engine",
     version="0.1.0",
@@ -30,8 +31,8 @@ def analyze(request: AnalyzeRequest):
     try:
         return analyze_text(
             text=request.text,
-            language=request.language,
         )
+
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
@@ -74,11 +75,11 @@ async def analyze_pdf(
 
         return analyze_text(
             text=extracted_text,
-            language=language,
         )
 
     except HTTPException:
         raise
+
     except Exception as exc:
         raise HTTPException(
             status_code=500,

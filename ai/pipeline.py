@@ -65,33 +65,43 @@ def analyze_requirement(
         -> normalization
         -> retrieval query construction
         -> semantic retrieval
-        -> ranking
+        -> compatibility-aware ranking
         -> uncertainty assessment
     """
 
     if not query or not query.strip():
         raise ValueError("Requirement text cannot be empty.")
 
+    # 1. Extract procurement requirements
     extracted = extract_requirements(query)
 
+    # 2. Normalize extracted requirements
     normalized = normalize_requirements(
         extracted
     )
 
+    # 3. Build semantic retrieval query
     retrieval_query = build_retrieval_query(
         normalized
     )
 
+    # 4. Retrieve candidate standards using
+    #    semantic similarity
     candidates = retrieve_standards(
         query=retrieval_query,
         top_k=top_k,
     )
 
+    # 5. Rank candidates using both:
+    #    - semantic similarity
+    #    - requirement/product compatibility
     ranked_candidates = rank_candidates(
         candidates,
         top_k=top_k,
+        normalized_requirements=normalized,
     )
 
+    # 6. Assess uncertainty after compatibility-aware ranking
     uncertainty = assess_uncertainty(
         ranked_candidates
     )

@@ -1,14 +1,14 @@
 def classify_confidence(score: float) -> str:
     """
-    Classify semantic similarity into a retrieval-confidence level.
+    Classify the final recommendation score into a confidence level.
 
     This is an engineering heuristic, not a probability.
     """
 
-    if score >= 0.80:
+    if score >= 1.00:
         return "HIGH"
 
-    if score >= 0.65:
+    if score >= 0.80:
         return "MEDIUM"
 
     return "LOW"
@@ -18,7 +18,8 @@ def assess_uncertainty(
     results: list[dict],
 ) -> dict:
     """
-    Assess retrieval strength and ambiguity.
+    Assess recommendation strength and ambiguity using the
+    final compatibility-aware ranking score.
     """
 
     if not results:
@@ -31,20 +32,30 @@ def assess_uncertainty(
             "reason": "No relevant standards were retrieved.",
         }
 
-    top_score = float(results[0]["score"])
+    # Use final_score when available.
+    # Fall back to semantic score for backward compatibility.
+    top_score = float(
+        results[0].get(
+            "final_score",
+            results[0].get("score", 0.0),
+        )
+    )
 
     if len(results) == 1:
         margin = None
     else:
-        margin = (
-            top_score
-            - float(results[1]["score"])
+        second_score = float(
+            results[1].get(
+                "final_score",
+                results[1].get("score", 0.0),
+            )
         )
 
-    confidence = classify_confidence(
-        top_score
-    )
+        margin = top_score - second_score
 
+    confidence = classify_confidence(top_score)
+
+    # Very weak final match
     if top_score < 0.65:
         return {
             "status": "INSUFFICIENT_MATCH",
@@ -53,11 +64,13 @@ def assess_uncertainty(
             "margin": margin,
             "needs_clarification": True,
             "reason": (
-                "The strongest retrieved standard "
-                "has a low semantic similarity score."
+                "The strongest recommended standard "
+                "has insufficient relevance to the requirement."
             ),
         }
 
+    # Strong score but very small separation from the next
+    # recommendation means multiple standards remain plausible.
     if margin is not None and margin < 0.05:
         return {
             "status": "AMBIGUOUS",
@@ -67,7 +80,7 @@ def assess_uncertainty(
             "needs_clarification": True,
             "reason": (
                 "Multiple standards have very similar "
-                "semantic similarity scores."
+                "final relevance scores."
             ),
         }
 
@@ -79,6 +92,6 @@ def assess_uncertainty(
         "needs_clarification": False,
         "reason": (
             "A sufficiently strong and distinguishable "
-            "semantic match was retrieved."
+            "standard recommendation was identified."
         ),
     }

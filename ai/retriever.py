@@ -13,7 +13,14 @@ def retrieve_standards(
             {
                 "standard_id": <database id>,
                 "score": <cosine similarity>,
-                "rank": <1-based rank>
+                "rank": <1-based semantic retrieval rank>,
+                "is_number": <standard number>,
+                "title": <standard title>,
+                "scope": <standard scope>,
+                "classification": <standard classification>,
+                "status": <standard status>,
+                "revision": <standard revision>,
+                "lifecycle_status": <standard lifecycle status>,
             }
         ]
     """
@@ -37,6 +44,13 @@ def retrieve_standards(
         rows = (
             db.query(
                 Standard.id,
+                Standard.is_number,
+                Standard.title,
+                Standard.scope,
+                Standard.classification,
+                Standard.status,
+                Standard.revision,
+                Standard.lifecycle_status,
                 distance.label("distance"),
             )
             .filter(Standard.embedding.isnot(None))
@@ -55,6 +69,13 @@ def retrieve_standards(
                 "standard_id": row.id,
                 "score": score,
                 "rank": rank,
+                "is_number": row.is_number,
+                "title": row.title,
+                "scope": row.scope,
+                "classification": row.classification,
+                "status": row.status,
+                "revision": row.revision,
+                "lifecycle_status": row.lifecycle_status,
             }
         )
 

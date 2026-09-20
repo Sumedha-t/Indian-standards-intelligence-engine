@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import {
   ReactFlow,
   Background,
@@ -14,13 +15,13 @@ import "@xyflow/react/dist/style.css";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-type MockResponse = {
+type AnalyzeResponse = {
   extracted_requirements: {
     product_type: string;
     intended_use: string;
     technical_requirements: {
       parameter: string;
-      value: string;
+      value: string | number | null;
       unit: string;
     }[];
     safety_requirements: string[];
@@ -43,7 +44,7 @@ type MockResponse = {
     relevance_reason: string;
     match_score: number;
     status: string;
-    revision: string;
+    revision: string | number;
     amendments: string[];
     source: string;
   }[];
@@ -66,8 +67,8 @@ type MockResponse = {
   lifecycle: {
     is_number: string;
     status: string;
-    revision: string;
-    review_or_reaffirmation: string;
+    revision: string | number;
+    review_or_reaffirmation: string | number;
     amendments: string[];
     superseded_by: string;
     source: string;
@@ -96,7 +97,7 @@ type MockResponse = {
     overall: number;
     classification: number;
     retrieval: number;
-    explanation: number;
+    explanation: number | string;
   };
 
   warnings: string[];
@@ -109,168 +110,6 @@ type MockResponse = {
   }[];
 };
 
-const mockResponse: MockResponse = {
-  extracted_requirements: {
-    product_type: "Wi-Fi router",
-    intended_use: "Government office networking",
-
-    technical_requirements: [
-      {
-        parameter: "Wireless networking",
-        value: "Wi-Fi",
-        unit: "",
-      },
-      {
-        parameter: "Intended environment",
-        value: "Office",
-        unit: "",
-      },
-    ],
-
-    safety_requirements: [],
-    performance_requirements: [],
-    environmental_requirements: [],
-  },
-
-  product_classification: {
-    product_name: "Wi-Fi Router",
-    normalized_product: "Wireless Networking Router",
-    category: "Electronics / IT",
-    sub_category: "Networking Equipment",
-    keywords: ["Wi-Fi", "router", "wireless", "networking"],
-  },
-
-  recommended_standards: [
-    {
-      is_number: "<VERIFIED_IS_NUMBER_FROM_DATASET>",
-      title: "<VERIFIED_STANDARD_TITLE_FROM_DATASET>",
-      scope: "<VERIFIED_SCOPE_FROM_DATASET>",
-      relevance_reason:
-        "This field will be populated from the verified standards dataset.",
-      match_score: 0,
-      status: "Awaiting verified data",
-      revision: "Awaiting verified data",
-      amendments: [],
-      source: "<VERIFIED_SOURCE_URL_FROM_DATASET>",
-    },
-  ],
-
-  related_standards: [
-    {
-      is_number: "<VERIFIED_IS_NUMBER_FROM_DATASET>",
-      title: "<VERIFIED_STANDARD_TITLE_FROM_DATASET>",
-      relationship_type: "RELATED_STANDARD",
-      related_to: "<RELATED_STANDARD_ID>",
-      reason:
-        "Relationship information will be populated from the verified knowledge graph.",
-      source: "<VERIFIED_SOURCE_URL_FROM_DATASET>",
-    },
-  ],
-
-  lifecycle: [
-    {
-      is_number: "<VERIFIED_IS_NUMBER_FROM_DATASET>",
-      status: "Awaiting verified data",
-      revision: "Awaiting verified data",
-      review_or_reaffirmation: "Awaiting verified data",
-      amendments: [],
-      superseded_by: "",
-      source: "<VERIFIED_SOURCE_URL_FROM_DATASET>",
-    },
-  ],
-
-  regulations: [
-    {
-      notification_number: "<VERIFIED_NOTIFICATION_NUMBER>",
-      title: "<VERIFIED_REGULATION_TITLE>",
-      authority: "<VERIFIED_AUTHORITY>",
-      date: "<VERIFIED_DATE>",
-      affected_standard: "<VERIFIED_STANDARD>",
-      implementation_information:
-        "Regulatory information will be populated from verified sources.",
-      source: "<VERIFIED_SOURCE_URL>",
-    },
-  ],
-
-  certifications: [
-    {
-      scheme: "<VERIFIED_CERTIFICATION_SCHEME>",
-      applicability: "To be determined from verified regulatory data.",
-      product_category: "Networking Equipment",
-      standard: "<VERIFIED_STANDARD>",
-      implementation_information:
-        "Certification information will be populated from verified sources.",
-      source: "<VERIFIED_SOURCE_URL>",
-    },
-  ],
-
-  confidence: {
-    overall: 0,
-    classification: 0,
-    retrieval: 0,
-    explanation: 0,
-  },
-
-  warnings: [
-    "This is mock development data. No actual BIS standard recommendation is being made.",
-    "Final recommendations must be based on verified standards and regulatory sources.",
-  ],
-
-  evidence: [
-    {
-      type: "Dataset",
-      reference: "<VERIFIED_DATASET_REFERENCE>",
-      source: "<VERIFIED_SOURCE_URL>",
-      supporting_information:
-        "Evidence will be populated by the backend using verified sources.",
-    },
-  ],
-};
-
-const graphNodes: Node[] = [
-  {
-    id: "product",
-    position: { x: 0, y: 100 },
-    data: { label: "Wi-Fi Router" },
-  },
-  {
-    id: "recommended",
-    position: { x: 300, y: 0 },
-    data: { label: "Recommended Standard" },
-  },
-  {
-    id: "related",
-    position: { x: 300, y: 200 },
-    data: { label: "Related Standard" },
-  },
-  {
-    id: "regulation",
-    position: { x: 650, y: 100 },
-    data: { label: "Regulatory Information" },
-  },
-];
-
-const graphEdges: Edge[] = [
-  {
-    id: "edge-1",
-    source: "product",
-    target: "recommended",
-    label: "RELATED_STANDARD",
-  },
-  {
-    id: "edge-2",
-    source: "recommended",
-    target: "related",
-    label: "NORMATIVE_REFERENCE",
-  },
-  {
-    id: "edge-3",
-    source: "related",
-    target: "regulation",
-    label: "SAFETY_STANDARD",
-  },
-];
-
 export default function Home() {
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("en");
@@ -278,11 +117,9 @@ export default function Home() {
   const [fileError, setFileError] = useState("");
   const [analysisError, setAnalysisError] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<MockResponse | null>(null);
+  const [result, setResult] = useState<AnalyzeResponse | null>(null);
 
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     setFileError("");
@@ -314,31 +151,183 @@ export default function Home() {
     setResult(null);
 
     try {
-      // Mock API mode for frontend development.
-      // Later this will connect to:
-      // POST /analyze
-      // POST /analyze/pdf
+      let response: Response;
 
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
 
-      console.log("API base URL:", API_BASE_URL);
-      console.log("Selected language:", language);
-      console.log("Selected file:", selectedFile?.name);
+        response = await fetch(`${API_BASE_URL}/analyze/pdf`, {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        response = await fetch(`${API_BASE_URL}/analyze`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text: text.trim(),
+            document: null,
+            language,
+          }),
+        });
+      }
 
-      setResult(mockResponse);
-    } catch {
+      if (!response.ok) {
+        let errorMessage =
+          "The backend could not analyze the requirement.";
+
+        try {
+          const errorData = await response.json();
+
+          if (errorData?.detail?.message) {
+            errorMessage = errorData.detail.message;
+          } else if (errorData?.detail) {
+            errorMessage =
+              typeof errorData.detail === "string"
+                ? errorData.detail
+                : JSON.stringify(errorData.detail);
+          }
+        } catch {
+          // Keep the default error message.
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      const data: AnalyzeResponse = await response.json();
+
+      setResult(data);
+    } catch (error) {
       setAnalysisError(
-        "Unable to analyze the requirement. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Unable to analyze the requirement. Please try again."
       );
     } finally {
       setIsAnalyzing(false);
     }
   };
 
+  const graphData = useMemo(() => {
+    if (!result) {
+      return {
+        nodes: [] as Node[],
+        edges: [] as Edge[],
+      };
+    }
+
+    const nodes: Node[] = [];
+    const edges: Edge[] = [];
+
+    const productId = "product";
+
+    nodes.push({
+      id: productId,
+      position: { x: 0, y: 180 },
+      data: {
+        label:
+          result.product_classification.product_name ||
+          result.extracted_requirements.product_type ||
+          "Product",
+      },
+    });
+
+    result.recommended_standards.forEach((standard, index) => {
+      const id = `recommended-${index}`;
+
+      nodes.push({
+        id,
+        position: {
+          x: 350,
+          y: index * 150,
+        },
+        data: {
+          label: standard.is_number,
+        },
+      });
+
+      edges.push({
+        id: `product-recommended-${index}`,
+        source: productId,
+        target: id,
+        label: "RELATED_STANDARD",
+      });
+    });
+
+    result.related_standards.forEach((standard, index) => {
+      const id = `related-${index}`;
+
+      nodes.push({
+        id,
+        position: {
+          x: 700,
+          y: index * 150,
+        },
+        data: {
+          label: standard.is_number,
+        },
+      });
+
+      const relatedRecommendedIndex =
+        result.recommended_standards.findIndex(
+          (item) => item.is_number === standard.related_to
+        );
+
+      const sourceId =
+        relatedRecommendedIndex >= 0
+          ? `recommended-${relatedRecommendedIndex}`
+          : productId;
+
+      edges.push({
+        id: `related-edge-${index}`,
+        source: sourceId,
+        target: id,
+        label: standard.relationship_type,
+      });
+    });
+
+    result.regulations.forEach((regulation, index) => {
+      const id = `regulation-${index}`;
+
+      nodes.push({
+        id,
+        position: {
+          x: 1050,
+          y: index * 150,
+        },
+        data: {
+          label:
+            regulation.notification_number ||
+            regulation.title ||
+            "Regulation",
+        },
+      });
+
+      const relatedStandardIndex =
+        result.recommended_standards.findIndex(
+          (standard) =>
+            standard.is_number === regulation.affected_standard
+        );
+
+      if (relatedStandardIndex >= 0) {
+        edges.push({
+          id: `regulation-edge-${index}`,
+          source: `recommended-${relatedStandardIndex}`,
+          target: id,
+          label: "RELATED_STANDARD",
+        });
+      }
+    });
+
+    return { nodes, edges };
+  }, [result]);
+
   return (
     <main className="min-h-screen bg-[#f8fafc] text-[#0f172a]">
       <div className="mx-auto max-w-7xl px-6 py-10">
-        {/* HEADER */}
         <header className="mb-8">
           <p className="mb-2 text-sm font-bold uppercase tracking-wide !text-[#1d4ed8]">
             SIH26108
@@ -354,7 +343,6 @@ export default function Home() {
           </p>
         </header>
 
-        {/* INPUT SECTION */}
         <section className="rounded-2xl border border-[#cbd5e1] bg-white p-6 shadow-sm">
           <div className="mb-6">
             <h2 className="text-xl font-bold !text-[#0f172a]">
@@ -368,7 +356,6 @@ export default function Home() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {/* TEXT INPUT */}
             <div className="lg:col-span-2">
               <label className="mb-2 block text-sm font-semibold !text-[#0f172a]">
                 Natural-language requirement
@@ -377,12 +364,11 @@ export default function Home() {
               <textarea
                 value={text}
                 onChange={(event) => setText(event.target.value)}
-                placeholder="Example: I need Wi-Fi routers for a government office. The routers should support wireless networking and be suitable for office use."
+                placeholder="Example: Laptop computers for government office employees with electrical safety and information technology requirements."
                 className="min-h-40 w-full rounded-xl border border-[#94a3b8] bg-white p-4 text-sm !text-[#0f172a] outline-none transition placeholder:!text-[#64748b] focus:border-[#2563eb] focus:ring-2 focus:ring-blue-200"
               />
             </div>
 
-            {/* LANGUAGE + PDF */}
             <div>
               <label className="mb-2 block text-sm font-semibold !text-[#0f172a]">
                 Language
@@ -425,14 +411,12 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ERROR */}
           {analysisError && (
             <div className="mt-5 rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-semibold !text-[#b91c1c]">
               {analysisError}
             </div>
           )}
 
-          {/* BUTTON */}
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
@@ -442,7 +426,6 @@ export default function Home() {
           </button>
         </section>
 
-        {/* RESULTS */}
         {result && (
           <section className="mt-8 space-y-6">
             <div>
@@ -456,7 +439,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* EXTRACTED REQUIREMENTS */}
             <ResultSection title="Extracted Requirements">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard
@@ -475,28 +457,34 @@ export default function Home() {
                   Technical Requirements
                 </h4>
 
-                <div className="mt-3 space-y-2">
-                  {result.extracted_requirements.technical_requirements.map(
-                    (item, index) => (
-                      <div
-                        key={index}
-                        className="flex justify-between rounded-lg bg-[#f1f5f9] p-3 text-sm"
-                      >
-                        <span className="font-medium !text-[#0f172a]">
-                          {item.parameter}
-                        </span>
+                {result.extracted_requirements.technical_requirements.length >
+                0 ? (
+                  <div className="mt-3 space-y-2">
+                    {result.extracted_requirements.technical_requirements.map(
+                      (item, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between rounded-lg bg-[#f1f5f9] p-3 text-sm"
+                        >
+                          <span className="font-medium !text-[#0f172a]">
+                            {item.parameter}
+                          </span>
 
-                        <span className="font-bold !text-[#0f172a]">
-                          {item.value} {item.unit}
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
+                          <span className="font-bold !text-[#0f172a]">
+                            {item.value ?? ""} {item.unit}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm !text-[#64748b]">
+                    No technical requirements extracted.
+                  </p>
+                )}
               </div>
             </ResultSection>
 
-            {/* CLASSIFICATION */}
             <ResultSection title="Product Classification">
               <div className="grid gap-4 md:grid-cols-2">
                 <InfoCard
@@ -516,7 +504,7 @@ export default function Home() {
 
                 <InfoCard
                   title="Sub-category"
-                  value={result.product_classification.sub_category}
+                  value={result.product_classification.sub_category || "—"}
                 />
               </div>
 
@@ -538,7 +526,6 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* RECOMMENDED STANDARDS */}
             <ResultSection title="Recommended Standards">
               <div className="space-y-4">
                 {result.recommended_standards.map((standard, index) => (
@@ -550,7 +537,6 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* RELATED STANDARDS */}
             <ResultSection title="Related / Allied Standards">
               <div className="space-y-4">
                 {result.related_standards.map((standard, index) => (
@@ -582,7 +568,6 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* LIFECYCLE */}
             <ResultSection title="Lifecycle / Status">
               <div className="space-y-4">
                 {result.lifecycle.map((item, index) => (
@@ -619,7 +604,6 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* REGULATIONS */}
             <ResultSection title="Regulatory Information">
               <div className="space-y-4">
                 {result.regulations.map((regulation, index) => (
@@ -632,7 +616,7 @@ export default function Home() {
                     </p>
 
                     <p className="mt-2 text-sm !text-[#334155]">
-                      Authority: {regulation.authority}
+                      Authority: {regulation.authority || "—"}
                     </p>
 
                     <p className="mt-1 text-sm !text-[#334155]">
@@ -640,14 +624,13 @@ export default function Home() {
                     </p>
 
                     <p className="mt-3 text-sm !text-[#334155]">
-                      {regulation.implementation_information}
+                      {regulation.implementation_information || "—"}
                     </p>
                   </div>
                 ))}
               </div>
             </ResultSection>
 
-            {/* CERTIFICATION */}
             <ResultSection title="Certification">
               <div className="space-y-4">
                 {result.certifications.map((certification, index) => (
@@ -667,6 +650,10 @@ export default function Home() {
                       Product category: {certification.product_category}
                     </p>
 
+                    <p className="mt-1 text-sm !text-[#334155]">
+                      Standard: {certification.standard}
+                    </p>
+
                     <p className="mt-3 text-sm !text-[#334155]">
                       {certification.implementation_information}
                     </p>
@@ -675,7 +662,6 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* CONFIDENCE */}
             <ResultSection title="Confidence">
               <div className="grid gap-4 md:grid-cols-4">
                 <ConfidenceCard
@@ -700,21 +686,25 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* WARNINGS */}
             <ResultSection title="Warnings / Uncertainty">
               <div className="space-y-3">
-                {result.warnings.map((warning, index) => (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-medium !text-[#92400e]"
-                  >
-                    {warning}
-                  </div>
-                ))}
+                {result.warnings.length > 0 ? (
+                  result.warnings.map((warning, index) => (
+                    <div
+                      key={index}
+                      className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm font-medium !text-[#92400e]"
+                    >
+                      {warning}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm !text-[#475569]">
+                    No warnings returned by the backend.
+                  </p>
+                )}
               </div>
             </ResultSection>
 
-            {/* EVIDENCE */}
             <ResultSection title="Evidence / Sources">
               <div className="space-y-4">
                 {result.evidence.map((item, index) => (
@@ -744,17 +734,16 @@ export default function Home() {
               </div>
             </ResultSection>
 
-            {/* KNOWLEDGE GRAPH */}
             <ResultSection title="Knowledge Graph">
               <p className="mb-4 text-sm !text-[#334155]">
                 Relationships between the product, standards, and regulatory
-                information.
+                information returned by the backend.
               </p>
 
               <div className="h-[500px] overflow-hidden rounded-xl border border-[#94a3b8] bg-white">
                 <ReactFlow
-                  nodes={graphNodes}
-                  edges={graphEdges}
+                  nodes={graphData.nodes}
+                  edges={graphData.edges}
                   fitView
                 >
                   <Background />
@@ -770,16 +759,12 @@ export default function Home() {
   );
 }
 
-/* ----------------------------- */
-/* RESULT SECTION                 */
-/* ----------------------------- */
-
 function ResultSection({
   title,
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-[#cbd5e1] bg-white p-6 shadow-sm">
@@ -791,10 +776,6 @@ function ResultSection({
     </section>
   );
 }
-
-/* ----------------------------- */
-/* INFO CARD                      */
-/* ----------------------------- */
 
 function InfoCard({
   title,
@@ -810,23 +791,21 @@ function InfoCard({
       </p>
 
       <p className="mt-2 text-base font-bold !text-[#0f172a]">
-        {value}
+        {value || "—"}
       </p>
     </div>
   );
 }
-
-/* ----------------------------- */
-/* CONFIDENCE CARD                */
-/* ----------------------------- */
 
 function ConfidenceCard({
   title,
   value,
 }: {
   title: string;
-  value: number;
+  value: number | string;
 }) {
+  const isNumeric = typeof value === "number";
+
   return (
     <div className="rounded-xl border border-[#cbd5e1] bg-[#f1f5f9] p-4">
       <p className="text-sm font-semibold !text-[#334155]">
@@ -834,20 +813,16 @@ function ConfidenceCard({
       </p>
 
       <p className="mt-2 text-2xl font-bold !text-[#0f172a]">
-        {Math.round(value * 100)}%
+        {isNumeric ? `${Math.round(value * 100)}%` : value}
       </p>
     </div>
   );
 }
 
-/* ----------------------------- */
-/* RECOMMENDATION CARD            */
-/* ----------------------------- */
-
 function RecommendationCard({
   standard,
 }: {
-  standard: MockResponse["recommended_standards"][number];
+  standard: AnalyzeResponse["recommended_standards"][number];
 }) {
   return (
     <div className="rounded-xl border border-blue-300 bg-blue-50 p-5">
@@ -893,11 +868,22 @@ function RecommendationCard({
           </strong>{" "}
           {standard.match_score}
         </p>
-      </div>
 
-      <div className="mt-4 rounded-lg border border-amber-300 bg-amber-100 p-3 text-xs font-semibold !text-[#92400e]">
-        Development placeholder only. Final standard information must come
-        from the verified backend dataset.
+        {standard.amendments.length > 0 && (
+          <p>
+            <strong className="!text-[#0f172a]">
+              Amendments:
+            </strong>{" "}
+            {standard.amendments.join(", ")}
+          </p>
+        )}
+
+        <p className="break-all">
+          <strong className="!text-[#0f172a]">
+            Source:
+          </strong>{" "}
+          {standard.source}
+        </p>
       </div>
     </div>
   );

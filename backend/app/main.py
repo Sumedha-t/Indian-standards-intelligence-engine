@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.schemas import AnalyzeRequest, AnalyzeResponse
 from backend.app.services.analyzer import analyze_text
@@ -8,6 +9,18 @@ from backend.app.services.pdf_service import extract_text_from_pdf
 app = FastAPI(
     title="Indian Standards Intelligence Engine",
     version="0.1.0",
+)
+
+# Frontend CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -43,13 +56,23 @@ def analyze(request: AnalyzeRequest):
             },
         )
 
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "PROCESSING_ERROR",
+                "message": str(exc),
+                "details": [],
+            },
+        )
+
 
 @app.post("/analyze/pdf", response_model=AnalyzeResponse)
 async def analyze_pdf(
     file: UploadFile = File(...),
     language: str = "en",
 ):
-    if not file.filename.lower().endswith(".pdf"):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=400,
             detail={
@@ -61,6 +84,17 @@ async def analyze_pdf(
 
     try:
         file_bytes = await file.read()
+
+        if not file_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "DOCUMENT_PROCESSING_ERROR",
+                    "message": "The uploaded PDF is empty.",
+                    "details": [],
+                },
+            )
+
         extracted_text = extract_text_from_pdf(file_bytes)
 
         if not extracted_text:

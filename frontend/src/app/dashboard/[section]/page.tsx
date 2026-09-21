@@ -332,6 +332,309 @@ function SectionHeading({
   );
 }
 
+/*
+ * Evidence-based explanation of why a standard was surfaced.
+ *
+ * This component intentionally uses only information returned by
+ * the backend. It does not invent scope, legal applicability,
+ * certification requirements, or technical claims.
+ */
+function RecommendationBasis({
+  standard,
+  result,
+}: {
+  standard: AnalyzeResponse["recommended_standards"][number];
+  result: AnalyzeResponse;
+}) {
+  const classification = result.product_classification;
+
+  const lifecycle = result.lifecycle.find(
+    (item) => item.is_number === standard.is_number,
+  );
+
+  const relatedStandards = result.related_standards.filter(
+    (item) =>
+      item.related_to === standard.is_number ||
+      item.is_number === standard.is_number,
+  );
+
+  const certification = result.certifications.find(
+    (item) =>
+      item.standard === standard.is_number ||
+      item.product_category
+        ?.toLowerCase()
+        .includes(
+          classification.normalized_product?.toLowerCase() || "",
+        ),
+  );
+
+  const evidence = result.evidence.filter(
+    (item) =>
+      item.reference === standard.is_number ||
+      item.supporting_information
+        ?.toLowerCase()
+        .includes(standard.is_number.toLowerCase()),
+  );
+
+  const score = Number.isFinite(standard.match_score)
+    ? Math.round(standard.match_score * 100)
+    : null;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-[#e2d4b6] bg-[#fffaf0] p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#876b29]">
+            Recommendation Basis
+          </p>
+
+          <h4 className="mt-1 text-base font-bold text-[#5f1731]">
+            Why this standard was surfaced
+          </h4>
+        </div>
+
+        {score !== null && (
+          <div className="shrink-0 rounded-lg border border-[#e0cc91] bg-white px-4 py-2 text-center">
+            <p className="text-[10px] font-bold uppercase text-[#827872]">
+              Match Score
+            </p>
+
+            <p className="text-xl font-bold text-[#6f1734]">
+              {score}%
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Procurement Product
+          </p>
+
+          <p className="mt-2 font-semibold text-[#302725]">
+            {classification.product_name || "UNKNOWN"}
+          </p>
+
+          <p className="mt-1 text-xs text-[#706661]">
+            Normalized as:{" "}
+            <span className="font-semibold">
+              {classification.normalized_product || "UNKNOWN"}
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Product Classification
+          </p>
+
+          <p className="mt-2 font-semibold text-[#302725]">
+            {classification.category || "UNKNOWN"}
+          </p>
+
+          {classification.sub_category && (
+            <p className="mt-1 text-xs text-[#706661]">
+              Sub-category:{" "}
+              <span className="font-semibold">
+                {classification.sub_category}
+              </span>
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Retrieval & Compatibility
+          </p>
+
+          <p className="mt-2 text-sm leading-6 text-[#514946]">
+            This standard received a{" "}
+            <strong>
+              {score !== null ? `${score}%` : "reported"}
+            </strong>{" "}
+            match score from the semantic retrieval and requirement
+            compatibility ranking pipeline.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Scope Evidence
+          </p>
+
+          <p className="mt-2 text-sm leading-6 text-[#514946]">
+            {standard.scope &&
+            standard.scope.toUpperCase() !== "UNKNOWN"
+              ? standard.scope
+              : "Scope information is not available in the returned dataset."}
+          </p>
+        </div>
+      </div>
+
+      {standard.relevance_reason && (
+        <div className="mt-4 rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Backend Retrieval Note
+          </p>
+
+          <p className="mt-2 text-sm leading-6 text-[#514946]">
+            {standard.relevance_reason}
+          </p>
+        </div>
+      )}
+
+      {classification.keywords.length > 0 && (
+        <div className="mt-4 rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Classification Keywords Used as Context
+          </p>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {classification.keywords.map((keyword, index) => (
+              <span
+                key={index}
+                className="rounded-full border border-[#dfd3c5] bg-[#faf7f2] px-3 py-1 text-xs font-semibold text-[#514946]"
+              >
+                {keyword}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Lifecycle Evidence
+          </p>
+
+          {lifecycle ? (
+            <>
+              <div className="mt-2">
+                <StatusBadge status={lifecycle.status} />
+              </div>
+
+              <p className="mt-2 text-xs text-[#706661]">
+                Revision:{" "}
+                <span className="font-semibold">
+                  {lifecycle.revision || "UNKNOWN"}
+                </span>
+              </p>
+
+              {lifecycle.review_or_reaffirmation && (
+                <p className="mt-1 text-xs text-[#706661]">
+                  Review / reaffirmation:{" "}
+                  <span className="font-semibold">
+                    {lifecycle.review_or_reaffirmation}
+                  </span>
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#706661]">
+              No separate lifecycle record returned for this standard.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Relationship Evidence
+          </p>
+
+          {relatedStandards.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {relatedStandards.map((item, index) => (
+                <div key={index}>
+                  <p className="text-xs font-bold text-[#6f1734]">
+                    {item.relationship_type}
+                  </p>
+
+                  <p className="text-xs text-[#706661]">
+                    {item.is_number}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-[#706661]">
+              No related-standard relationship was returned for this
+              recommendation.
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-[#e6ddd2] bg-white p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-[#827872]">
+            Compliance Evidence
+          </p>
+
+          {certification ? (
+            <>
+              <p className="mt-2 text-sm font-semibold text-[#302725]">
+                {certification.scheme}
+              </p>
+
+              <p className="mt-1 text-xs text-[#706661]">
+                Applicability:{" "}
+                <span className="font-semibold">
+                  {certification.applicability || "UNKNOWN"}
+                </span>
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-[#706661]">
+              No certification record directly linked to this standard
+              was returned.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-[#d9ccb9] bg-[#faf7f2] p-4">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 text-[#9b7930]">ⓘ</span>
+
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-[#827872]">
+              Interpretation
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-[#514946]">
+              The match score is a retrieval and compatibility signal
+              indicating how strongly this standard matched the submitted
+              procurement requirement. It is not, by itself, a legal
+              determination that the standard is mandatory or applicable.
+              Applicability should be confirmed using the displayed scope,
+              lifecycle, regulatory, certification, and source evidence.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {evidence.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-[#827872]">
+            Supporting Evidence
+          </p>
+
+          <div className="mt-2 flex flex-wrap gap-2">
+            {evidence.slice(0, 4).map((item, index) => (
+              <span
+                key={index}
+                className="rounded-full border border-[#dfd3c5] bg-white px-3 py-1 text-xs font-semibold text-[#6f1734]"
+              >
+                {item.type}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardSectionPage() {
   const params = useParams();
   const router = useRouter();
@@ -683,12 +986,36 @@ export default function DashboardSectionPage() {
             description="Standards identified as relevant to the procurement requirement."
           />
 
+          <div className="mb-6 rounded-2xl border border-[#d6bd7c] bg-[#fff8e7] p-5">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#7b1e3b] text-sm font-bold text-white">
+                i
+              </div>
+
+              <div>
+                <h3 className="font-bold text-[#6f1734]">
+                  How recommendations are explained
+                </h3>
+
+                <p className="mt-1 text-sm leading-6 text-[#514946]">
+                  Each recommendation is supported using the product
+                  classification, semantic retrieval and compatibility
+                  signal, available scope information, lifecycle data,
+                  relationship evidence, compliance records, and source
+                  evidence returned by the analysis pipeline. Missing
+                  information is shown as unavailable rather than
+                  inferred.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-5">
             {result.recommended_standards.map((standard, index) => (
               <Panel key={index}>
                 <div className="border-l-4 border-[#9b7930] pl-5">
-                  <div className="flex flex-col justify-between gap-4 md:flex-row">
-                    <div>
+                  <div className="flex items-start gap-4">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-lg bg-[#7b1e3b] px-3 py-1.5 text-sm font-bold text-white">
                           {standard.is_number}
@@ -700,16 +1027,6 @@ export default function DashboardSectionPage() {
                       <h3 className="mt-3 text-xl font-bold">
                         {standard.title}
                       </h3>
-                    </div>
-
-                    <div className="rounded-xl bg-[#fff7df] px-5 py-3 text-center">
-                      <p className="text-xs font-bold text-[#876b29]">
-                        MATCH SCORE
-                      </p>
-
-                      <p className="text-2xl font-bold text-[#6f1734]">
-                        {Math.round(standard.match_score * 100)}%
-                      </p>
                     </div>
                   </div>
 
@@ -735,27 +1052,12 @@ export default function DashboardSectionPage() {
                           : "—"}
                       </p>
                     </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase text-[#827872]">
-                        Why Relevant
-                      </p>
-
-                      <p className="mt-2 text-sm leading-6 text-[#514946]">
-                        {standard.relevance_reason}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold uppercase text-[#827872]">
-                        Scope
-                      </p>
-
-                      <p className="mt-2 text-sm leading-6 text-[#514946]">
-                        {standard.scope}
-                      </p>
-                    </div>
                   </div>
+
+                  <RecommendationBasis
+                    standard={standard}
+                    result={result}
+                  />
 
                   <div className="mt-6">
                     <SourceLink url={standard.source} />
